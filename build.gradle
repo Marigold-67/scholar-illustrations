@@ -1,0 +1,57 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.148'
+}
+group = 'dev.marigold'
+version = '0.2.1-dev'
+base { archivesName = 'scholar-illustrations-1.21.1' }
+java { toolchain.languageVersion = JavaLanguageVersion.of(21); withSourcesJar() }
+repositories { maven { url = 'https://api.modrinth.com/maven' }; mavenCentral() }
+neoForge {
+    version = '21.1.259'
+    runs {
+        client { client() }
+        server { server(); programArgument '--nogui' }
+    }
+    mods { scholar_illustrations { sourceSet sourceSets.main } }
+    unitTest { enable(); testedMod = mods.scholar_illustrations }
+}
+// The automated GUI exercise is development-only and never bundled by a normal build.
+if (project.hasProperty('smokeTest')) {
+    sourceSets.main.java.srcDir('src/smoke/java')
+    sourceSets.main.resources.srcDir('src/smoke/resources')
+    neoForge.runs {
+        gameTestServer {
+            type = 'gameTestServer'
+            gameDirectory = file('run-gametest')
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'scholar_illustrations'
+        }
+    }
+    neoForge.runs.client {
+        gameDirectory = file('run-smoke')
+        programArguments.addAll '--width', '1000', '--height', '700'
+        systemProperty 'scholar_illustrations.smokeTest', 'true'
+        if (project.hasProperty('smokeReload')) systemProperty 'scholar_illustrations.smokeReload', 'true'
+        if (project.hasProperty('smokeExisting')) systemProperty 'scholar_illustrations.smokeExisting', project.property('smokeExisting')
+    }
+    tasks.named('runClient').configure {
+        def reportName = project.hasProperty('smokeExisting') ? 'smoke-existing-book.txt' :
+                project.hasProperty('smokeReload') ? 'smoke-client-restart.txt' : 'smoke-results.txt'
+        def report = file('run-smoke/' + reportName)
+        doFirst { java.nio.file.Files.deleteIfExists(report.toPath()) }
+        doLast {
+            if (!report.exists() || report.text.contains('FAIL') || !report.text.contains('PASS:'))
+                throw new GradleException('Minecraft GUI exercise failed or did not finish; see ' + report)
+        }
+    }
+}
+dependencies {
+    implementation 'maven.modrinth:scholar:ZIsoNOTJ'
+    testImplementation platform('org.junit:junit-bom:5.11.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+tasks.withType(AbstractArchiveTask).configureEach { preserveFileTimestamps = false; reproducibleFileOrder = true }
+test { useJUnitPlatform() }
+tasks.named('jar') { from('LICENSE'); manifest.attributes('Implementation-Version': project.version) }

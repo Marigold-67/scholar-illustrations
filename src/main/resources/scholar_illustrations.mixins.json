@@ -1,0 +1,9 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.marigold.illustrations.integration",
+  "compatibilityLevel": "JAVA_21",
+  "client": ["SpreadAccess", "EditAccess", "HandAccess", "ViewHandAccess", "BookRenderMixin", "EditBookRenderMixin", "ViewBookRenderMixin", "EditPagesMixin", "ViewPagesMixin"],
+  "mixins": ["LecternPagesMixin"],
+  "injectors": { "defaultRequire": 1 }
+}
